@@ -2,87 +2,158 @@
 require_once('tcpdf/tcpdf.php');
 include 'config.php';
 
-// Query เพื่อดึงจำนวนผู้ใช้ทั้งหมด
-$query_users = "SELECT COUNT(*) as total_users FROM user_information";
-$result_users = mysqli_query($conn, $query_users);
-$row_users = mysqli_fetch_assoc($result_users);
-$total_users = $row_users['total_users'];
+// รับค่าประเภทการรายงานจาก URL (GET method)
+$reportType = isset($_GET['report-type']) ? $_GET['report-type'] : '';
 
-// Query เพื่อดึงจำนวนกีฬาทั้งหมด
-$query_sports = "SELECT COUNT(*) as total_sports FROM sport WHERE status = 'active'";
-$result_sports = mysqli_query($conn, $query_sports);
-$row_sports = mysqli_fetch_assoc($result_sports);
-$total_sports = $row_sports['total_sports'];
-
-// Query เพื่อดึงจำนวนประเภทสนามกีฬาทั้งหมด
-$query_sport_types = "SELECT COUNT(*) as total_sport_types FROM sport_type WHERE status = 'active'";
-$result_sport_types = mysqli_query($conn, $query_sport_types);
-$row_sport_types = mysqli_fetch_assoc($result_sport_types);
-$total_sport_types = $row_sport_types['total_sport_types'];
-
-// Query เพื่อดึงจำนวนแฮชแท็กทั้งหมด
-$query_hashtags = "SELECT COUNT(*) as total_hashtags FROM hashtag";
-$result_hashtags = mysqli_query($conn, $query_hashtags);
-$row_hashtags = mysqli_fetch_assoc($result_hashtags);
-$total_hashtags = $row_hashtags['total_hashtags'];
-
-// Query เพื่อดึงชื่อสถานที่และนับจำนวนทั้งหมด
-$query_location = "SELECT location_name, COUNT(*) as total_locations FROM location GROUP BY location_name";
-$result_location = mysqli_query($conn, $query_location);
-
-// สร้างวัตถุ TCPDF
-$pdf = new TCPDF();
-
-// ตั้งค่าขอบกระดาษ
-$pdf->SetMargins(20, 20, 20);
-
-// เพิ่มหน้า
-$pdf->AddPage();
-
-// ตั้งค่าฟอนต์ (ต้องแปลงฟอนต์ TH Sarabun New ให้ใช้งานได้ใน TCPDF ก่อน)
-$pdf->SetFont('thsarabunnew', '', 16);
-
-// เนื้อหาของรายงาน
-$html = '
-<h2>รายงานข้อมูลระบบ</h2>
-
-<p>จำนวนผู้ใช้งานทั้งหมด: ' . $total_users . ' คน</p>
-<p>จำนวนกีฬาทั้งหมด: ' . $total_sports . ' ประเภท</p>
-<p>จำนวนประเภทสนามกีฬาทั้งหมด: ' . $total_sport_types . ' ประเภท</p>
-<p>จำนวนแฮชแท็กทั้งหมด: ' . $total_hashtags . ' รายการ</p>
-</br>
-';
-
-// แทรกเนื้อหา HTML เข้าไปใน PDF
-$pdf->writeHTML($html, true, false, true, false, '');
-
-// เริ่มสร้างตาราง
-$table = '<h2>ข้อมูลสถานที่เล่นกีฬา</h2>';
-$table .= '<table border="1" cellpadding="5">
-<thead>
-    <tr>
-        <th>ชื่อสถานที่เล่นกีฬา</th>
-        <th>จำนวนสถานที่ถูกเรียกใช้ (ครั้ง)</th>
-    </tr>
-</thead>
-<tbody>';
-
-if (mysqli_num_rows($result_location) > 0) {
-    while ($row = mysqli_fetch_assoc($result_location)) {
-        $table .= '<tr>';
-        $table .= '<td>' . $row['location_name'] . '</td>';
-        $table .= '<td>' . $row['total_locations'] . '</td>';
-        $table .= '</tr>';
+class MYPDF extends TCPDF {
+    public function Header() {
+        $this->SetFont('thsarabunnew', '', 16);
+        $this->Cell(0, 10, 'รายงานข้อมูล', 0, 1, 'C', 0, '', 0, false, 'T', 'M');
     }
-} else {
-    $table .= '<tr><td colspan="2">ไม่มีข้อมูลสถานที่</td></tr>';
+
+    public function Footer() {
+        $this->SetY(-15);
+        $this->SetFont('thsarabunnew', '', 12);
+        $this->Cell(0, 10, 'หน้าที่ ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages(), 0, 0, 'C');
+    }
 }
 
-$table .= '</tbody></table>';
+// สร้าง PDF ใหม่
+$pdf = new MYPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
 
-// แทรกตารางเข้าไปใน PDF
-$pdf->writeHTML($table, true, false, true, false, '');
+// ตั้งค่าข้อมูลเอกสาร
+$pdf->SetCreator(PDF_CREATOR);
+$pdf->SetAuthor('Your Name');
+$pdf->SetTitle('รายงานข้อมูล');
+$pdf->SetSubject('รายงานข้อมูล');
+$pdf->SetKeywords('รายงาน, TCPDF, PDF, ฟอนต์ไทย');
 
-// ส่งออกไฟล์ PDF
+// ตั้งค่าฟอนต์ THSarabunNew
+$pdf->SetFont('thsarabunnew', '', 14);
+
+// เพิ่มหน้ากระดาษ
+$pdf->AddPage();
+
+// เช็คประเภทการรายงานและดึงข้อมูลจากฐานข้อมูลตามประเภทนั้น
+$html = '';
+
+if ($reportType == 'location') {
+    // ดึงข้อมูลสถานที่เล่นกีฬา
+    $html .= '<h1 style="text-align:center;">รายงานข้อมูลสถานที่</h1>';
+    $html .= '<table border="1" cellpadding="4">
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ชื่อสถานที่</th>
+                    <th>เวลาเปิด</th>
+                    <th>ละติจูด</th>
+                    <th>ลองจิจูด</th>
+                </tr>';
+
+    $query = "SELECT location_name, location_time, latitude, longitude FROM location";
+    $result = mysqli_query($conn, $query);
+    $counter = 1;
+    
+    while ($row = mysqli_fetch_assoc($result)) {
+        $html .= '<tr>
+                    <td>' . $counter . '</td>
+                    <td>' . htmlspecialchars($row['location_name']) . '</td>
+                    <td>' . htmlspecialchars($row['location_time']) . '</td>
+                    <td>' . htmlspecialchars($row['latitude']) . '</td>
+                    <td>' . htmlspecialchars($row['longitude']) . '</td>
+                </tr>';
+        $counter++;
+    }
+
+    $html .= '</table>';
+} elseif ($reportType == 'activity') {
+    // ดึงข้อมูลกิจกรรม
+    $html .= '<h1 style="text-align:center;">รายงานข้อมูลกิจกรรม</h1>';
+    $html .= '<table border="1" cellpadding="4">
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่</th>
+                    <th>รายละเอียด</th>
+                    <th>ชื่อสถานที่</th>
+                    <th>ชื่อกีฬา</th>
+                    <th>ชื่อผู้ใช้</th>
+                    <th>สถานะ</th>
+                </tr>';
+
+    $query = "
+        SELECT 
+            activity.activity_name, 
+            activity.activity_date, 
+            activity.activity_details, 
+            location.location_name, 
+            sport.sport_name, 
+            user_information.user_name, 
+            activity.status 
+        FROM activity
+        JOIN location ON activity.location_id = location.location_id
+        JOIN sport ON activity.sport_id = sport.sport_id
+        JOIN user_information ON activity.user_id = user_information.user_id
+    ";
+    $result = mysqli_query($conn, $query);
+    $counter = 1;
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $html .= '<tr>
+                    <td>' . $counter . '</td>
+                    <td>' . htmlspecialchars($row['activity_name']) . '</td>
+                    <td>' . htmlspecialchars($row['activity_date']) . '</td>
+                    <td>' . htmlspecialchars($row['activity_details']) . '</td>
+                    <td>' . htmlspecialchars($row['location_name']) . '</td>
+                    <td>' . htmlspecialchars($row['sport_name']) . '</td>
+                    <td>' . htmlspecialchars($row['user_name']) . '</td>
+                    <td>' . htmlspecialchars($row['status']) . '</td>
+                </tr>';
+        $counter++;
+    }
+
+    $html .= '</table>';
+} elseif ($reportType == 'user') {
+    // ดึงข้อมูลสมาชิก
+    $html .= '<h1 style="text-align:center;">รายงานข้อมูลสมาชิก</h1>';
+    $html .= '<table border="1" cellpadding="4">
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>รหัสสมาชิก</th>
+                    <th>อีเมล</th>
+                    <th>ชื่อสมาชิก</th>
+                    <th>อายุ</th>
+                    <th>สถานะ</th>
+                </tr>';
+
+    $query = "
+        SELECT 
+            user_id, 
+            user_email, 
+            user_name, 
+            user_age, 
+            status 
+        FROM user_information";
+    $result = mysqli_query($conn, $query);
+    $counter = 1;
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $html .= '<tr>
+                    <td>' . $counter . '</td>
+                    <td>' . htmlspecialchars($row['user_id']) . '</td>
+                    <td>' . htmlspecialchars($row['user_email']) . '</td>
+                    <td>' . htmlspecialchars($row['user_name']) . '</td>
+                    <td>' . htmlspecialchars($row['user_age']) . '</td>
+                    <td>' . htmlspecialchars($row['status']) . '</td>
+                </tr>';
+        $counter++;
+    }
+
+    $html .= '</table>';
+}
+
+// แสดง HTML ใน PDF
+$pdf->writeHTML($html, true, false, true, false, '');
+
+// ส่งไฟล์ PDF ไปยัง browser
 $pdf->Output('report.pdf', 'I');
 ?>
