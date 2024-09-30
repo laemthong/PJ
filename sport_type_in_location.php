@@ -58,17 +58,6 @@ if (isset($_GET['delete'])) {
     }
 }
 
-if (isset($_GET['delete'])) {
-    $type_in_location_id = $_GET['delete'];
-    $sql = "DELETE FROM sport_type_in_location WHERE type_in_location_id='$type_in_location_id'";
-    if ($conn->query($sql) === TRUE) {
-        $message = "ลบข้อมูลสำเร็จ";
-        header("Location: " . $_SERVER['PHP_SELF']);
-        exit();
-    } else {
-        $error = "Error: " . $sql . "<br>" . $conn->error;
-    }
-}
 if (isset($_GET['delete_all'])) {
     $location_id = $_GET['location_id'];
     $sql = "DELETE FROM sport_type_in_location WHERE location_id='$location_id'";
@@ -80,7 +69,6 @@ if (isset($_GET['delete_all'])) {
         $error = "Error: " . $sql . "<br>" . $conn->error;
     }
 }
-
 
 ?>
 
@@ -99,17 +87,17 @@ if (isset($_GET['delete_all'])) {
             background: #f4f7f6;
         }
         .sidebar {
-    position: fixed; /* ล็อคแถบด้านข้าง */
-    top: 0;
-    left: 0;
-    height: 100%; /* ทำให้แถบด้านข้างสูงเต็มหน้าจอ */
-    width: 250px;
-    background: #2c3e50;
-    color: white;
-    padding: 20px;
-    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-    overflow-y: auto; /* ถ้ามีเนื้อหาในแถบด้านข้างมาก จะสามารถเลื่อนลงได้ */
-}
+            position: fixed; /* ล็อคแถบด้านข้าง */
+            top: 0;
+            left: 0;
+            height: 100%; /* ทำให้แถบด้านข้างสูงเต็มหน้าจอ */
+            width: 250px;
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto; /* ถ้ามีเนื้อหาในแถบด้านข้างมาก จะสามารถเลื่อนลงได้ */
+        }
         .sidebar h2 {
             text-align: center;
             margin-bottom: 20px;
@@ -241,19 +229,18 @@ if (isset($_GET['delete_all'])) {
             justify-content: center;
         }
         .sidebar a.btn-logout {
-    background: #e74c3c; /* สีแดง */
-    color: white; 
-    padding: 15px 20px;
-    text-decoration: none;
-    display: block;
-    border-radius: 5px;
-    margin-bottom: 10px;
-    text-align: center;
-}
-
-.sidebar a.btn-logout:hover {
-    background: #c0392b; /* สีแดงเข้มขึ้นเมื่อเมาส์อยู่เหนือ */
-}
+            background: #e74c3c; /* สีแดง */
+            color: white; 
+            padding: 15px 20px;
+            text-decoration: none;
+            display: block;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .sidebar a.btn-logout:hover {
+            background: #c0392b; /* สีแดงเข้มขึ้นเมื่อเมาส์อยู่เหนือ */
+        }
     </style>
 </head>
 <body>
@@ -300,33 +287,33 @@ if (isset($_GET['delete_all'])) {
     <form method="POST" action="sport_type_in_location.php">
         <input type="hidden" id="type_in_location_id" name="type_in_location_id">
         <div class="form-group">
-    <label for="location_id">สถานที่เล่นกีฬา:</label>
-    <select id="location_id" name="location_id" required>
-        <option value="">กรุณาเลือกสถานที่เล่นกีฬา</option>
-        <?php
-        // ปรับคำสั่ง SQL เพื่อดึงข้อมูลเฉพาะที่มีสถานะ approved และ active
-        $sql = "SELECT location_id, location_name FROM location WHERE status IN ('approved', 'active')";
-        $result = $conn->query($sql);
-        while ($row = $result->fetch_assoc()) {
-            echo "<option value='" . $row['location_id'] . "'>" . $row['location_name'] . "</option>";
-        }
-        ?>
-    </select>
-</div>
-        <div class="form-group">
-        <label for="type_id">ประเภทสนามกีฬา:</label>
-        <button type="button" class="btn-select-all" onclick="toggleCheckboxes()">เลือกทั้งหมด</button>
-        <div class="checkbox-group">
-            <?php
-            $sql = "SELECT type_id, type_name FROM sport_type WHERE status='active'";
-            $result = $conn->query($sql);
-            while ($row = $result->fetch_assoc()) {
-                echo "<label><input type='checkbox' name='type_id[]' value='" . htmlspecialchars($row['type_id']) . "'>" . htmlspecialchars($row['type_name']) . "</label>";
-            }
-            ?>
+            <label for="location_id">สถานที่เล่นกีฬา:</label>
+            <select id="location_id" name="location_id" required>
+                <option value="">กรุณาเลือกสถานที่เล่นกีฬา</option>
+                <?php
+                // ปรับคำสั่ง SQL เพื่อดึงข้อมูลเฉพาะที่มีสถานะ approved และ active
+                $sql = "SELECT location_id, location_name FROM location WHERE status IN ('approved', 'active')";
+                $result = $conn->query($sql);
+                while ($row = $result->fetch_assoc()) {
+                    echo "<option value='" . $row['location_id'] . "'>" . $row['location_name'] . "</option>";
+                }
+                ?>
+            </select>
         </div>
-    </div>
-    <button type="submit" class="btn-submit" onclick="return confirmAdd()">บันทึก</button>
+        <div class="form-group">
+            <label for="type_id">ประเภทสนามกีฬา:</label>
+            <button type="button" class="btn-select-all" onclick="toggleCheckboxes()">เลือกทั้งหมด</button>
+            <div class="checkbox-group">
+                <?php
+                $sql = "SELECT type_id, type_name FROM sport_type";  // ลบเงื่อนไข status='active'
+                $result = $conn->query($sql);
+                while ($row = $result->fetch_assoc()) {
+                    echo "<label><input type='checkbox' name='type_id[]' value='" . htmlspecialchars($row['type_id']) . "'>" . htmlspecialchars($row['type_name']) . "</label>";
+                }
+                ?>
+            </div>
+        </div>
+        <button type="submit" class="btn-submit" onclick="return confirmAdd()">บันทึก</button>
     </form>
 
     <h2>รายการ</h2>
@@ -365,14 +352,11 @@ $conn->close();
 ?>
 
      <script>
-       
     function confirmEdit() {
         return confirm("คุณแน่ใจว่าต้องการแก้ไขข้อมูลนี้หรือไม่?");
     }
 
-
-
-function confirmAdd() {
+    function confirmAdd() {
         if (confirm("คุณแน่ใจว่าต้องการเพิ่มข้อมูลนี้หรือไม่?")) {
             alert("เพิ่มข้อมูลสำเร็จ");
             return true; // ดำเนินการส่งแบบฟอร์ม
@@ -380,21 +364,14 @@ function confirmAdd() {
             return false; // ยกเลิกการส่งแบบฟอร์ม
         }
     }
-    function confirmDeleteAll() {
-        if (confirm("คุณแน่ใจว่าต้องการลบนี้หรือไม่?")) {
-            alert("ลบข้อมูลสำเร็จ");
-            return true; // ดำเนินการส่งแบบฟอร์ม
-        } else {
-            return false; // ยกเลิกการส่งแบบฟอร์ม
-        }
+    
+    function toggleCheckboxes() {
+        const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
+        const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
+        checkboxes.forEach(checkbox => checkbox.checked = !allChecked);
     }
-        function toggleCheckboxes() {
-            const checkboxes = document.querySelectorAll('.checkbox-group input[type="checkbox"]');
-            const allChecked = Array.from(checkboxes).every(checkbox => checkbox.checked);
-            checkboxes.forEach(checkbox => checkbox.checked = !allChecked);
-        }
 
-        function editTypeInLocation(type_in_location_id, location_id, type_ids) {
+    function editTypeInLocation(type_in_location_id, location_id, type_ids) {
         document.getElementById('type_in_location_id').value = type_in_location_id;
         document.getElementById('location_id').value = location_id;
 

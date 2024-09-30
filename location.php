@@ -114,9 +114,11 @@ if (isset($_GET['reactivate_sport_type'])) {
 }
 // ฟังก์ชันนี้ใช้ในการดึงประเภทกีฬาที่มีสถานะ active จากตาราง sport_type
 function getActiveSportTypes($conn) {
-    $sql = "SELECT type_id, type_name FROM sport_type WHERE status='active'";
+    // แก้ไขคำสั่ง SQL โดยไม่ใช้เงื่อนไข status
+    $sql = "SELECT type_id, type_name FROM sport_type";
     return $conn->query($sql);
 }
+
 
 $error = ''; // ประกาศตัวแปร error ล่วงหน้า
 
