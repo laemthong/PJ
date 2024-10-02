@@ -5,6 +5,7 @@ include 'config.php';
 // รับค่าประเภทการรายงานจาก URL (GET method)
 $reportType = isset($_GET['report-type']) ? $_GET['report-type'] : '';
 
+// สร้างคลาสสำหรับ PDF ที่กำหนด Header และ Footer
 class MYPDF extends TCPDF {
     public function Header() {
         $this->SetFont('thsarabunnew', '', 16);
@@ -44,8 +45,7 @@ if ($reportType == 'location') {
                 <tr>
                     <th>ลำดับ</th>
                     <th>ชื่อสถานที่</th>
-                    <th>ละติจูด</th>
-                    <th>ลองจิจูด</th>
+                    <th>ละติจูด, ลองจิจูด</th>
                     <th>ประเภทสนามกีฬา</th>
                     <th>วันทำการ</th>
                     <th>เวลาเปิด-ปิด</th>
@@ -69,7 +69,7 @@ if ($reportType == 'location') {
     ";
     $result = mysqli_query($conn, $query);
     $counter = 1;
-    
+
     while ($row = mysqli_fetch_assoc($result)) {
         // แปลงวันทำการเป็นชื่อวัน
         $dayNumbers = explode(',', $row['location_day']);
@@ -78,11 +78,14 @@ if ($reportType == 'location') {
             return $dayNames[trim($dayNumber)];
         }, $dayNumbers));
 
+        // รวมละติจูดและลองจิจูดเข้าด้วยกัน
+        $coordinates = $row['latitude'] . ', ' . $row['longitude'];
+        $googleMapsLink = "https://www.google.com/maps/place/" . $coordinates;
+
         $html .= '<tr>
                     <td>' . $counter . '</td>
                     <td>' . htmlspecialchars($row['location_name']) . '</td>
-                    <td>' . htmlspecialchars($row['latitude']) . '</td>
-                    <td>' . htmlspecialchars($row['longitude']) . '</td>
+                    <td><a href="' . htmlspecialchars($googleMapsLink) . '" target="_blank">' . htmlspecialchars($coordinates) . '</a></td>
                     <td>' . htmlspecialchars($row['type_name']) . '</td>
                     <td>' . $dayList . '</td>
                     <td>' . htmlspecialchars($row['location_time']) . '</td>
@@ -98,11 +101,11 @@ if ($reportType == 'location') {
     $html .= '<table border="1" cellpadding="4">
                 <tr>
                     <th>ลำดับ</th>
+                    <th>กิจกรรมที่ใกล้มาถึง</th>
+                     <th>เวลา</th>
                     <th>ชื่อกิจกรรม</th>
                     <th>ชื่อคนสร้าง</th>
                     <th>ประเภทกีฬา</th>
-                    <th>วัน/เดือน/ปี</th>
-                    <th>เวลา</th>
                     <th>จำนวนสมาชิก</th>
                     <th>รายชื่อสมาชิก</th>
                 </tr>';
@@ -134,11 +137,12 @@ if ($reportType == 'location') {
 
         $html .= '<tr>
                     <td>' . $counter . '</td>
+                    <td>' . htmlspecialchars($activityDate) . '</td>
+                    <td>' . htmlspecialchars($activityTime) . '</td>
                     <td>' . htmlspecialchars($row['activity_name']) . '</td>
                     <td>' . htmlspecialchars($row['creator_name']) . '</td>
                     <td>' . htmlspecialchars($row['sport_name']) . '</td>
-                    <td>' . htmlspecialchars($activityDate) . '</td>
-                    <td>' . htmlspecialchars($activityTime) . '</td>
+                    
                     <td>' . htmlspecialchars($row['member_count']) . '</td>
                     <td>' . htmlspecialchars($row['member_names']) . '</td>
                 </tr>';
@@ -199,8 +203,7 @@ if ($reportType == 'location') {
                 <tr>
                     <th>ลำดับ</th>
                     <th>ชื่อสนามกีฬา</th>
-                    <th>ละติจูด</th>
-                    <th>ลองจิจูด</th>
+                    <th>ละติจูด, ลองจิจูด</th>
                     <th>ประเภทกีฬา</th>
                     <th>จำนวนครั้งที่ถูกใช้งาน</th>
                 </tr>';
@@ -208,8 +211,7 @@ if ($reportType == 'location') {
     $query = "
         SELECT 
             location.location_name, 
-            location.latitude, 
-            location.longitude, 
+            CONCAT(location.latitude, ', ', location.longitude) AS coordinates,
             sport_type.type_name, 
             COUNT(activity.activity_id) AS usage_count
         FROM location
@@ -222,19 +224,57 @@ if ($reportType == 'location') {
     $counter = 1;
 
     while ($row = mysqli_fetch_assoc($result)) {
+        // ลิงก์ไปยัง Google Maps
+        $googleMapsLink = "https://www.google.com/maps/place/" . $row['coordinates'];
+
         $html .= '<tr>
                     <td>' . $counter . '</td>
                     <td>' . htmlspecialchars($row['location_name']) . '</td>
-                    <td>' . htmlspecialchars($row['latitude']) . '</td>
-                    <td>' . htmlspecialchars($row['longitude']) . '</td>
+                    <td><a href="' . htmlspecialchars($googleMapsLink) . '" target="_blank">' . htmlspecialchars($row['coordinates']) . '</a></td>
                     <td>' . htmlspecialchars($row['type_name']) . '</td>
                     <td>' . htmlspecialchars($row['usage_count']) . '</td>
+                </tr>';
+        $counter++;
+    }
+} elseif ($reportType == 'hashtag') {
+    // ดึงข้อมูลแฮชแท็ก
+    $html .= '<h1 style="text-align:center;">รายงานข้อมูลแฮชแท็ก</h1>';
+    $html .= '<table border="1" cellpadding="4">
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>ชื่อแฮชแท็ก</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>ชื่อสมาชิก</th>
+                </tr>';
+
+    $query = "
+        SELECT 
+            hashtag.hashtag_message AS hashtag_name, 
+            activity.activity_name, 
+            user_information.user_name 
+        FROM hashtags_in_activities
+        JOIN hashtag ON hashtags_in_activities.hashtag_id = hashtag.hashtag_id
+        JOIN activity ON hashtags_in_activities.activity_id = activity.activity_id
+        JOIN creator ON activity.activity_id = creator.activity_id
+        JOIN user_information ON creator.user_id = user_information.user_id
+        GROUP BY hashtag.hashtag_message, activity.activity_name, user_information.user_name
+    ";
+    $result = mysqli_query($conn, $query);
+    $counter = 1;
+
+    while ($row = mysqli_fetch_assoc($result)) {
+        $html .= '<tr>
+                    <td>' . $counter . '</td>
+                    <td>' . htmlspecialchars($row['hashtag_name']) . '</td>
+                    <td>' . htmlspecialchars($row['activity_name']) . '</td>
+                    <td>' . htmlspecialchars($row['user_name']) . '</td>
                 </tr>';
         $counter++;
     }
 
     $html .= '</table>';
 }
+
 
 // แสดง HTML ใน PDF
 $pdf->writeHTML($html, true, false, true, false, '');
