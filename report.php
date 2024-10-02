@@ -594,11 +594,11 @@ button {
             $counter++;
         }
         echo "</table>";
-        
+
     } elseif($_SERVER["REQUEST_METHOD"] == "POST" && isset($hashtagData)) {
         echo "<h2>รายงานข้อมูลแฮชแท็ก</h2>";
         echo "<table>";
-        echo "<tr><th>ลำดับ</th><th>ชื่อแฮชแท็ก</th><th>ชื่อกิจกรรม</th><th>ชื่อสมาชิก</th></tr>";
+        echo "<tr><th>ลำดับ</th><th>ชื่อแฮชแท็ก</th><th>ชื่อกิจกรรม</th><th>ชื่อสมาชิกที่เรียกใช้</th></tr>";
         $counter = 1;
         foreach ($hashtagData as $hashtag) {
             echo "<tr>";
