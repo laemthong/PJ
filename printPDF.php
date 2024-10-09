@@ -236,6 +236,7 @@ if ($reportType == 'location') {
                 </tr>';
         $counter++;
     }
+
 } elseif ($reportType == 'hashtag') {
     // ดึงข้อมูลแฮชแท็ก
     $html .= '<h1 style="text-align:center;">รายงานข้อมูลแฮชแท็ก</h1>';
@@ -243,22 +244,23 @@ if ($reportType == 'location') {
                 <tr>
                     <th>ลำดับ</th>
                     <th>ชื่อแฮชแท็ก</th>
-                    <th>ชื่อกิจกรรม</th>
+                    <th>ชื่อกิจกรรมที่เรียกใช้</th>
                     <th>ชื่อสมาชิกที่เรียกใช้</th>
                 </tr>';
 
     $query = "
         SELECT 
             hashtag.hashtag_message AS hashtag_name, 
-            activity.activity_name, 
-            user_information.user_name 
+            GROUP_CONCAT(DISTINCT activity.activity_name SEPARATOR ', ') AS activity_names,
+            GROUP_CONCAT(DISTINCT user_information.user_name SEPARATOR ', ') AS user_names
         FROM hashtags_in_activities
         JOIN hashtag ON hashtags_in_activities.hashtag_id = hashtag.hashtag_id
         JOIN activity ON hashtags_in_activities.activity_id = activity.activity_id
         JOIN creator ON activity.activity_id = creator.activity_id
         JOIN user_information ON creator.user_id = user_information.user_id
-        GROUP BY hashtag.hashtag_message, activity.activity_name, user_information.user_name
+        GROUP BY hashtag.hashtag_message
     ";
+    
     $result = mysqli_query($conn, $query);
     $counter = 1;
 
@@ -266,15 +268,14 @@ if ($reportType == 'location') {
         $html .= '<tr>
                     <td>' . $counter . '</td>
                     <td>' . htmlspecialchars($row['hashtag_name']) . '</td>
-                    <td>' . htmlspecialchars($row['activity_name']) . '</td>
-                    <td>' . htmlspecialchars($row['user_name']) . '</td>
+                    <td>' . htmlspecialchars($row['activity_names']) . '</td>
+                    <td>' . htmlspecialchars($row['user_names']) . '</td>
                 </tr>';
         $counter++;
     }
 
     $html .= '</table>';
 }
-
 
 // แสดง HTML ใน PDF
 $pdf->writeHTML($html, true, false, true, false, '');

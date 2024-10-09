@@ -124,14 +124,14 @@ function getHashtagReport($conn) {
     $query = "
         SELECT 
             hashtag.hashtag_message AS hashtag_name, 
-            activity.activity_name, 
-            user_information.user_name 
+            GROUP_CONCAT(DISTINCT activity.activity_name SEPARATOR ', ') AS activity_names,
+            GROUP_CONCAT(DISTINCT user_information.user_name SEPARATOR ', ') AS user_names
         FROM hashtags_in_activities
         JOIN hashtag ON hashtags_in_activities.hashtag_id = hashtag.hashtag_id
         JOIN activity ON hashtags_in_activities.activity_id = activity.activity_id
         JOIN creator ON activity.activity_id = creator.activity_id
         JOIN user_information ON creator.user_id = user_information.user_id
-        GROUP BY hashtag.hashtag_message, activity.activity_name, user_information.user_name
+        GROUP BY hashtag.hashtag_message
     ";
     $result = mysqli_query($conn, $query);
     $data = array();
@@ -140,6 +140,8 @@ function getHashtagReport($conn) {
     }
     return $data;
 }
+
+
 
 
 
@@ -598,18 +600,57 @@ button {
     } elseif($_SERVER["REQUEST_METHOD"] == "POST" && isset($hashtagData)) {
         echo "<h2>รายงานข้อมูลแฮชแท็ก</h2>";
         echo "<table>";
-        echo "<tr><th>ลำดับ</th><th>ชื่อแฮชแท็ก</th><th>ชื่อกิจกรรม</th><th>ชื่อสมาชิกที่เรียกใช้</th></tr>";
+        echo "<tr><th>ลำดับ</th><th>ชื่อแฮชแท็ก</th><th>ชื่อกิจกรรมที่เรียกใช้</th><th>ชื่อสมาชิกที่เรียกใช้</th></tr>";
         $counter = 1;
         foreach ($hashtagData as $hashtag) {
+            $modalId = "modal" . $counter;
+            $userNames = explode(', ', $hashtag['user_names']); // แปลงชื่อสมาชิกให้เป็น array
+            $activityNames = explode(', ', $hashtag['activity_names']); // แปลงชื่อกิจกรรมให้เป็น array
+    
+            // แสดงกิจกรรมเพียง 3 กิจกรรม
+            $visibleActivities = array_slice($activityNames, 0, 3);
+            $hiddenActivities = array_slice($activityNames, 3);
+    
+            // แสดงสมาชิกเพียง 3 คน
+            $visibleNames = array_slice($userNames, 0, 3);
+            $hiddenNames = array_slice($userNames, 3);
+    
             echo "<tr>";
             echo "<td>" . $counter . "</td>";
             echo "<td>" . htmlspecialchars($hashtag['hashtag_name']) . "</td>";
-            echo "<td>" . htmlspecialchars($hashtag['activity_name']) . "</td>";
-            echo "<td>" . htmlspecialchars($hashtag['user_name']) . "</td>";
+    
+            // แสดงชื่อกิจกรรม
+            echo "<td>" . htmlspecialchars(implode(', ', $visibleActivities));
+            if (count($hiddenActivities) > 0) {
+                // ปุ่มสำหรับเปิด Modal ดูเพิ่มเติม
+                echo ' <span class="more-link" onclick="openModal(' . $counter . ')">...ดูเพิ่มเติม</span>';
+                echo '<div id="modal-' . $counter . '" class="modal">';
+                echo '<div class="modal-content">';
+                echo '<span class="close" onclick="closeModal(' . $counter . ')">&times;</span>';
+                echo '<p>' . htmlspecialchars(implode(', ', $hiddenActivities)) . '</p>';
+                echo '</div></div>';
+            }
+            echo "</td>";
+    
+            // แสดงรายชื่อสมาชิก
+            echo "<td>" . htmlspecialchars(implode(', ', $visibleNames));
+            if (count($hiddenNames) > 0) {
+                // ปุ่มสำหรับเปิด Modal ดูเพิ่มเติม
+                echo ' <span class="more-link" onclick="openModal(' . ($counter + 100) . ')">...ดูเพิ่มเติม</span>';
+                echo '<div id="modal-' . ($counter + 100) . '" class="modal">';
+                echo '<div class="modal-content">';
+                echo '<span class="close" onclick="closeModal(' . ($counter + 100) . ')">&times;</span>';
+                echo '<p>' . htmlspecialchars(implode(', ', $hiddenNames)) . '</p>';
+                echo '</div></div>';
+            }
+            echo "</td>";
+    
             echo "</tr>";
             $counter++;
         }
         echo "</table>";
+
+
 }
     ?>
 </div>
